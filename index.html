@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Sonificador RGB</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #101114;
+            color: #eeeeee;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #55dfff;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #bbbbbb;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: #1b1d21;
+            border: 1px solid #33363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 20px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(250px, 1fr)
+            );
+            gap: 20px;
+        }
+
+        .rgb-controls {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(250px, 1fr)
+            );
+            gap: 20px;
+        }
+
+        .rgb-box {
+            padding: 18px;
+            border-radius: 10px;
+            background: #15171a;
+            border: 1px solid #33363d;
+        }
+
+        .rgb-box.red {
+            border-top: 4px solid #ff4444;
+        }
+
+        .rgb-box.green {
+            border-top: 4px solid #44dd66;
+        }
+
+        .rgb-box.blue {
+            border-top: 4px solid #4488ff;
+        }
+
+        .rgb-box h3 {
+            margin-top: 0;
+        }
+
+        .red h3 {
+            color: #ff5555;
+        }
+
+        .green h3 {
+            color: #55dd77;
+        }
+
+        .blue h3 {
+            color: #5599ff;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            margin-bottom: 5px;
+            color: #cccccc;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background: #25282d;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 6px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #25282d;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 6px;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 12px 20px;
+            margin: 5px;
+            color: white;
+            background: #333940;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #4a5058;
+        }
+
+        button.play {
+            background: #159447;
+        }
+
+        button.play:hover {
+            background: #1bb955;
+        }
+
+        button.stop {
+            background: #b83232;
+        }
+
+        button.stop:hover {
+            background: #df4141;
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .value {
+            float: right;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .preview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            background: #111316;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .canvas-container h3 {
+            text-align: center;
+            color: #bbbbbb;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: black;
+            border-radius: 5px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            background: #25282d;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #55dfff;
+        }
+
+        .info {
+            line-height: 1.7;
+            color: #cccccc;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(200px, 1fr)
+            );
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .legend div {
+            padding: 12px;
+            border-radius: 7px;
+            background: #25282d;
+        }
+
+        .red-text {
+            color: #ff5555;
+        }
+
+        .green-text {
+            color: #55dd77;
+        }
+
+        .blue-text {
+            color: #5599ff;
+        }
+
+        @media (max-width: 700px) {
+            .preview {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>SONIFICADOR DE IMÁGENES RGB</h1>
+
+    <div class="subtitle">
+        Convierte los valores RGB de una imagen en sonido
+    </div>
+
+    <!-- =====================================================
+         CARGAR IMAGEN
+    ====================================================== -->
+
+    <div class="panel">
+
+        <h2>1. Cargar imagen</h2>
+
+        <input
+            type="file"
+            id="imageInput"
+            accept="image/*"
+        >
+
+        <div class="status" id="status">
+            Esperando una imagen...
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         CONTROLES GENERALES
+    ====================================================== -->
+
+    <div class="panel">
+
+        <h2>2. Controles de reproducción</h2>
+
+        <div class="controls">
+
+            <div>
+
+                <label>
+                    Velocidad de reproducción:
+                    <span
+                        class="value"
+                        id="speedValue"
+                    >
+                        1.0x
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="speed"
+                    min="0.25"
+                    max="3"
+                    step="0.05"
+                    value="1"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Tamaño de muestra:
+                    <span
+                        class="value"
+                        id="sampleValue"
+                    >
+                        12 px
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="sampleSize"
+                    min="4"
+                    max="30"
+                    step="1"
+                    value="12"
+                >
+
+            </div>
+
+        </div>
+
+        <div class="buttons">
+
+            <button
+                class="play"
+                id="playButton"
+            >
+                ▶ Reproducir
+            </button>
+
+            <button id="pauseButton">
+                ⏸ Pausar
+            </button>
+
+            <button
+                class="stop"
+                id="stopButton"
+            >
+                ■ Detener
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         RGB
+    ====================================================== -->
+
+    <div class="panel">
+
+        <h2>3. Mapeo RGB → Sonido</h2>
+
+        <div class="rgb-controls">
+
+            <!-- ROJO -->
+
+            <div class="rgb-box red">
+
+                <h3>🔴 ROJO (R) → ALTURA</h3>
+
+                <p>
+                    El rojo determina la frecuencia.
+                </p>
+
+                <label>
+                    Frecuencia mínima:
+                    <span
+                        class="value"
+                        id="minFreqValue"
+                    >
+                        150 Hz
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="minFreq"
+                    min="50"
+                    max="1000"
+                    value="150"
+                >
+
+                <label>
+                    Frecuencia máxima:
+                    <span
+                        class="value"
+                        id="maxFreqValue"
+                    >
+                        1200 Hz
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="maxFreq"
+                    min="500"
+                    max="3000"
+                    value="1200"
+                >
+
+                <p>
+                    <span class="red-text">
+                        R = 0
+                    </span>
+                    → grave
+                    <br>
+
+                    <span class="red-text">
+                        R = 255
+                    </span>
+                    → agudo
+                </p>
+
+            </div>
+
+
+            <!-- VERDE -->
+
+            <div class="rgb-box green">
+
+                <h3>🟢 VERDE (G) → FILTRO</h3>
+
+                <p>
+                    El verde controla la frecuencia
+                    de corte del filtro.
+                </p>
+
+                <label>
+                    Filtro mínimo:
+                    <span
+                        class="value"
+                        id="minFilterValue"
+                    >
+                        300 Hz
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="minFilter"
+                    min="100"
+                    max="2000"
+                    value="300"
+                >
+
+                <label>
+                    Filtro máximo:
+                    <span
+                        class="value"
+                        id="maxFilterValue"
+                    >
+                        5000 Hz
+                    </span>
+                </label>
+
+                <input
+                    type="range"
+                    id="maxFilter"
+                    min="1000"
+                    max="10000"
+                    value="5000"
+                >
+
+                <p>
+                    <span class="green-text">
+                        G = 0
+                    </span>
+                    → filtro cerrado
+                    <br>
+
+                    <span class="green-text">
+                        G = 255
+                    </span>
+                    → sonido brillante
+                </p>
+
+            </div>
+
+
+            <!-- AZUL -->
+
+            <div class="rgb-box blue">
+
+                <h3>🔵 AZUL (B) → TECLADO</h3>
+
+                <p>
+                    El azul selecciona diferentes
+                    notas del teclado.
+                </p>
+
+                <label>
+                    Instrumento / timbre:
+                </label>
+
+                <select id="waveform">
+
+                    <option value="triangle">
+                        Piano suave
+                    </option>
+
+                    <option value="sine">
+                        Seno
+                    </option>
+
+                    <option value="square">
+                        Teclado electrónico
+                    </option>
+
+                    <option value="sawtooth">
+                        Sintetizador
+                    </option>
+
+                </select>
+
+                <label>
+                    Nota más grave:
+                </label>
+
+                <select id="baseNote">
+
+                    <option value="36">
+                        C2
+                    </option>
+
+                    <option value="48" selected>
+                        C3
+                    </option>
+
+                    <option value="60">
+                        C4
+                    </option>
+
+                    <option value="72">
+                        C5
+                    </option>
+
+                </select>
+
+                <p>
+                    <span class="blue-text">
+                        B = 0
+                    </span>
+                    → nota grave
+
+                    <br>
+
+                    <span class="blue-text">
+                        B = 255
+                    </span>
+                    → nota aguda
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         VISTA PREVIA
+    ====================================================== -->
+
+    <div class="panel">
+
+        <h2>4. Vista previa</h2>
+
+        <div class="preview">
+
+            <div class="canvas-container">
+
+                <h3>Imagen original</h3>
+
+                <canvas
+                    id="originalCanvas"
+                ></canvas>
+
+            </div>
+
+
+            <div class="canvas-container">
+
+                <h3>Mapa RGB</h3>
+
+                <canvas
+                    id="pixelCanvas"
+                ></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         INFORMACIÓN
+    ====================================================== -->
+
+    <div class="panel">
+
+        <h2>5. ¿Cómo funciona?</h2>
+
+        <div class="info">
+
+            <p>
+                La imagen se divide en pequeños bloques de
+                píxeles. Se obtiene el promedio RGB de cada
+                bloque y ese valor se transforma en sonido.
+            </p>
+
+            <div class="legend">
+
+                <div>
+                    <strong class="red-text">
+                        🔴 ROJO
+                    </strong>
+
+                    <br>
+
+                    Controla la frecuencia principal.
+                    Más rojo = sonido más agudo.
+                </div>
+
+                <div>
+                    <strong class="green-text">
+                        🟢 VERDE
+                    </strong>
+
+                    <br>
+
+                    Controla el filtro pasa-bajos.
+                    Más verde = sonido más brillante.
+                </div>
+
+                <div>
+                    <strong class="blue-text">
+                        🔵 AZUL
+                    </strong>
+
+                    <br>
+
+                    Selecciona la nota del teclado.
+                    Más azul = nota más alta.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+    // ========================================================
+    // ELEMENTOS HTML
+    // ========================================================
+
+    const imageInput =
+        document.getElementById("imageInput");
+
+    const originalCanvas =
+        document.getElementById("originalCanvas");
+
+    const pixelCanvas =
+        document.getElementById("pixelCanvas");
+
+    const originalCtx =
+        originalCanvas.getContext("2d");
+
+    const pixelCtx =
+        pixelCanvas.getContext("2d");
+
+    const status =
+        document.getElementById("status");
+
+    const playButton =
+        document.getElementById("playButton");
+
+    const pauseButton =
+        document.getElementById("pauseButton");
+
+    const stopButton =
+        document.getElementById("stopButton");
+
+    const speed =
+        document.getElementById("speed");
+
+    const sampleSize =
+        document.getElementById("sampleSize");
+
+    const minFreq =
+        document.getElementById("minFreq");
+
+    const maxFreq =
+        document.getElementById("maxFreq");
+
+    const minFilter =
+        document.getElementById("minFilter");
+
+    const maxFilter =
+        document.getElementById("maxFilter");
+
+    const waveform =
+        document.getElementById("waveform");
+
+    const baseNote =
+        document.getElementById("baseNote");
+
+
+    // ========================================================
+    // VALORES VISIBLES
+    // ========================================================
+
+    const speedValue =
+        document.getElementById("speedValue");
+
+    const sampleValue =
+        document.getElementById("sampleValue");
+
+    const minFreqValue =
+        document.getElementById("minFreqValue");
+
+    const maxFreqValue =
+        document.getElementById("maxFreqValue");
+
+    const minFilterValue =
+        document.getElementById("minFilterValue");
+
+    const maxFilterValue =
+        document.getElementById("maxFilterValue");
+
+
+    speed.addEventListener("input", () => {
+
+        speedValue.textContent =
+            Number(speed.value).toFixed(2) + "x";
+
+    });
+
+
+    sampleSize.addEventListener("input", () => {
+
+        sampleValue.textContent =
+            sampleSize.value + " px";
+
+        if (currentImage) {
+            drawPixelMap();
+        }
+
+    });
+
+
+    minFreq.addEventListener("input", () => {
+
+        minFreqValue.textContent =
+            minFreq.value + " Hz";
+
+    });
+
+
+    maxFreq.addEventListener("input", () => {
+
+        maxFreqValue.textContent =
+            maxFreq.value + " Hz";
+
+    });
+
+
+    minFilter.addEventListener("input", () => {
+
+        minFilterValue.textContent =
+            minFilter.value + " Hz";
+
+    });
+
+
+    maxFilter.addEventListener("input", () => {
+
+        maxFilterValue.textContent =
+            maxFilter.value + " Hz";
+
+    });
+
+
+    // ========================================================
+    // VARIABLES
+    // ========================================================
+
+    let currentImage = null;
+
+    let audioContext = null;
+
+    let masterGain = null;
+
+    let isPlaying = false;
+
+    let isPaused = false;
+
+    let currentIndex = 0;
+
+    let timer = null;
+
+    let audioData = [];
+
+
+    // ========================================================
+    // CARGAR IMAGEN
+    // ========================================================
+
+    imageInput.addEventListener(
+        "change",
+        function(event) {
+
+            const file =
+                event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = function(e) {
+
+                const img =
+                    new Image();
+
+                img.onload = function() {
+
+                    currentImage = img;
+
+                    drawOriginal();
+
+                    drawPixelMap();
+
+                    prepareAudioData();
+
+                    status.textContent =
+                        "Imagen cargada correctamente. " +
+                        "Lista para sonificar.";
+
+                };
+
+                img.src = e.target.result;
+
+            };
+
+            reader.readAsDataURL(file);
+
+        }
+    );
+
+
+    // ========================================================
+    // DIBUJAR IMAGEN ORIGINAL
+    // ========================================================
+
+    function drawOriginal() {
+
+        const maxWidth = 800;
+
+        let width =
+            currentImage.width;
+
+        let height =
+            currentImage.height;
+
+
+        if (width > maxWidth) {
+
+            const ratio =
+                maxWidth / width;
+
+            width =
+                Math.floor(width * ratio);
+
+            height =
+                Math.floor(height * ratio);
+
+        }
+
+
+        originalCanvas.width =
+            width;
+
+        originalCanvas.height =
+            height;
+
+
+        originalCtx.drawImage(
+            currentImage,
+            0,
+            0,
+            width,
+            height
+        );
+
+    }
+
+
+    // ========================================================
+    // CREAR MAPA PIXELADO
+    // ========================================================
+
+    function drawPixelMap() {
+
+        if (!currentImage) {
+            return;
+        }
+
+
+        const size =
+            Number(sampleSize.value);
+
+
+        const width =
+            Math.min(
+                currentImage.width,
+                800
+            );
+
+
+        const ratio =
+            width / currentImage.width;
+
+
+        const height =
+            Math.floor(
+                currentImage.height * ratio
+            );
+
+
+        originalCanvas.width =
+            width;
+
+        originalCanvas.height =
+            height;
+
+
+        originalCtx.drawImage(
+            currentImage,
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        pixelCanvas.width =
+            width;
+
+        pixelCanvas.height =
+            height;
+
+
+        pixelCtx.imageSmoothingEnabled =
+            false;
+
+
+        pixelCtx.drawImage(
+            currentImage,
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        const imageData =
+            pixelCtx.getImageData(
+                0,
+                0,
+                width,
+                height
+            );
+
+
+        pixelCtx.clearRect(
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        // Dibujar bloques RGB
+
+        for (
+            let y = 0;
+            y < height;
+            y += size
+        ) {
+
+            for (
+                let x = 0;
+                x < width;
+                x += size
+            ) {
+
+                let r = 0;
+                let g = 0;
+                let b = 0;
+                let count = 0;
+
+
+                for (
+                    let yy = y;
+                    yy < y + size && yy < height;
+                    yy++
+                ) {
+
+                    for (
+                        let xx = x;
+                        xx < x + size && xx < width;
+                        xx++
+                    ) {
+
+                        const index =
+                            (yy * width + xx) * 4;
+
+
+                        r +=
+                            imageData.data[index];
+
+                        g +=
+                            imageData.data[index + 1];
+
+                        b +=
+                            imageData.data[index + 2];
+
+                        count++;
+
+                    }
+
+                }
+
+
+                r =
+                    Math.floor(r / count);
+
+                g =
+                    Math.floor(g / count);
+
+                b =
+                    Math.floor(b / count);
+
+
+                pixelCtx.fillStyle =
+                    `rgb(${r}, ${g}, ${b})`;
+
+
+                pixelCtx.fillRect(
+                    x,
+                    y,
+                    size,
+                    size
+                );
+
+            }
+
+        }
+
+    }
+
+
+    // ========================================================
+    // OBTENER DATOS RGB
+    // ========================================================
+
+    function prepareAudioData() {
+
+        if (!currentImage) {
+            return;
+        }
+
+
+        audioData = [];
+
+
+        const size =
+            Number(sampleSize.value);
+
+
+        const width =
+            Math.min(
+                currentImage.width,
+                800
+            );
+
+
+        const ratio =
+            width / currentImage.width;
+
+
+        const height =
+            Math.floor(
+                currentImage.height * ratio
+            );
+
+
+        const tempCanvas =
+            document.createElement("canvas");
+
+
+        tempCanvas.width =
+            width;
+
+        tempCanvas.height =
+            height;
+
+
+        const tempCtx =
+            tempCanvas.getContext("2d");
+
+
+        tempCtx.drawImage(
+            currentImage,
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        const imageData =
+            tempCtx.getImageData(
+                0,
+                0,
+                width,
+                height
+            );
+
+
+        // ================================================
+        // RECORRER LA IMAGEN
+        // ================================================
+
+        for (
+            let y = 0;
+            y < height;
+            y += size
+        ) {
+
+            for (
+                let x = 0;
+                x < width;
+                x += size
+            ) {
+
+                let r = 0;
+                let g = 0;
+                let b = 0;
+
+                let count = 0;
+
+
+                for (
+                    let yy = y;
+                    yy < y + size && yy < height;
+                    yy++
+                ) {
+
+                    for (
+                        let xx = x;
+                        xx < x + size && xx < width;
+                        xx++
+                    ) {
+
+                        const index =
+                            (yy * width + xx) * 4;
+
+
+                        r +=
+                            imageData.data[index];
+
+                        g +=
+                            imageData.data[index + 1];
+
+                        b +=
+                            imageData.data[index + 2];
+
+                        count++;
+
+                    }
+
+                }
+
+
+                r =
+                    Math.floor(r / count);
+
+                g =
+                    Math.floor(g / count);
+
+                b =
+                    Math.floor(b / count);
+
+
+                audioData.push({
+                    r: r,
+                    g: g,
+                    b: b
+                });
+
+            }
+
+        }
+
+
+        console.log(
+            "Bloques sonoros:",
+            audioData.length
+        );
+
+    }
+
+
+    // ========================================================
+    // CREAR AUDIO CONTEXT
+    // ========================================================
+
+    function initAudio() {
+
+        if (!audioContext) {
+
+            audioContext =
+                new (
+                    window.AudioContext ||
+                    window.webkitAudioContext
+                )();
+
+
+            masterGain =
+                audioContext.createGain();
+
+
+            masterGain.gain.value =
+                0.75;
+
+
+            masterGain.connect(
+                audioContext.destination
+            );
+
+        }
+
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
+            audioContext.resume();
+
+        }
+
+    }
+
+
+    // ========================================================
+    // CONVERTIR VALOR RGB A FRECUENCIA
+    // ========================================================
+
+    function mapValue(
+        value,
+        inMin,
+        inMax,
+        outMin,
+        outMax
+    ) {
+
+        return (
+            outMin +
+            (
+                (value - inMin) /
+                (inMax - inMin)
+            ) *
+            (outMax - outMin)
+        );
+
+    }
+
+
+    // ========================================================
+    // RGB → FRECUENCIA
+    //
+    // ROJO:
+    //
+    // 0   = grave
+    // 255 = agudo
+    // ========================================================
+
+    function redToFrequency(r) {
+
+        let min =
+            Number(minFreq.value);
+
+        let max =
+            Number(maxFreq.value);
+
+
+        if (max <= min) {
+            max = min + 100;
+        }
+
+
+        // Usamos escala logarítmica
+        // porque las frecuencias musicales
+        // se perciben mejor de esta manera.
+
+        const normalized =
+            r / 255;
+
+
+        return (
+            min *
+            Math.pow(
+                max / min,
+                normalized
+            )
+        );
+
+    }
+
+
+    // ========================================================
+    // RGB → FILTRO
+    //
+    // VERDE:
+    //
+    // 0   = filtro cerrado
+    // 255 = filtro abierto
+    // ========================================================
+
+    function greenToFilter(g) {
+
+        let min =
+            Number(minFilter.value);
+
+        let max =
+            Number(maxFilter.value);
+
+
+        if (max <= min) {
+            max = min + 500;
+        }
+
+
+        return mapValue(
+            g,
+            0,
+            255,
+            min,
+            max
+        );
+
+    }
+
+
+    // ========================================================
+    // RGB → NOTA DEL TECLADO
+    //
+    // AZUL:
+    //
+    // 0   = nota grave
+    // 255 = nota aguda
+    // ========================================================
+
+    function blueToMidi(b) {
+
+        const start =
+            Number(baseNote.value);
+
+
+        // 24 notas = 2 octavas
+
+        const note =
+            Math.round(
+                mapValue(
+                    b,
+                    0,
+                    255,
+                    start,
+                    start + 24
+                )
+            );
+
+
+        return note;
+
+    }
+
+
+    // ========================================================
+    // MIDI → FRECUENCIA
+    // ========================================================
+
+    function midiToFrequency(midi) {
+
+        return (
+            440 *
+            Math.pow(
+                2,
+                (midi - 69) / 12
+            )
+        );
+
+    }
+
+
+    // ========================================================
+    // CREAR UN SONIDO
+    // ========================================================
+
+    function playPixelSound(
+        pixel,
+        duration = 0.12
+    ) {
+
+        if (!audioContext) {
+            return;
+        }
+
+
+        // ----------------------------------------------------
+        // ROJO
+        // ----------------------------------------------------
+        // Determina la frecuencia principal.
+
+        const redFrequency =
+            redToFrequency(pixel.r);
+
+
+        // ----------------------------------------------------
+        // AZUL
+        // ----------------------------------------------------
+        // Determina la nota del teclado.
+
+        const midi =
+            blueToMidi(pixel.b);
+
+
+        const keyboardFrequency =
+            midiToFrequency(midi);
+
+
+        // Combinamos ambas dimensiones.
+        //
+        // El rojo controla la frecuencia principal.
+        // El azul aporta la afinación tipo teclado.
+
+        const frequency =
+            (
+                redFrequency * 0.65
+            ) +
+            (
+                keyboardFrequency * 0.35
+            );
+
+
+        // ----------------------------------------------------
+        // VERDE
+        // ----------------------------------------------------
+        // Controla el filtro.
+
+        const filterFrequency =
+            greenToFilter(pixel.g);
+
+
+        // ----------------------------------------------------
+        // OSCILADOR
+        // ----------------------------------------------------
+
+        const oscillator =
+            audioContext.createOscillator();
+
+
+        // ----------------------------------------------------
+        // FILTRO
+        // ----------------------------------------------------
+
+        const filter =
+            audioContext.createBiquadFilter();
+
+
+        // ----------------------------------------------------
+        // GANANCIA
+        // ----------------------------------------------------
+
+        const gain =
+            audioContext.createGain();
+
+
+        oscillator.type =
+            waveform.value;
+
+
+        oscillator.frequency.value =
+            frequency;
+
+
+        filter.type =
+            "lowpass";
+
+
+        filter.frequency.value =
+            filterFrequency;
+
+
+        filter.Q.value =
+            1.2;
+
+
+        // ----------------------------------------------------
+        // ENVOLVENTE
+        // ----------------------------------------------------
+
+        const now =
+            audioContext.currentTime;
+
+
+        gain.gain.setValueAtTime(
+            0,
+            now
+        );
+
+
+        gain.gain.linearRampToValueAtTime(
+            0.55,
+            now + 0.015
+        );
+
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + duration
+        );
+
+
+        // ----------------------------------------------------
+        // CONEXIONES
+        // ----------------------------------------------------
+
+        oscillator
+            .connect(filter);
+
+
+        filter
+            .connect(gain);
+
+
+        gain
+            .connect(masterGain);
+
+
+        // ----------------------------------------------------
+        // REPRODUCIR
+        // ----------------------------------------------------
+
+        oscillator.start(now);
+
+
+        oscillator.stop(
+            now + duration + 0.02
+        );
+
+    }
+
+
+    // ========================================================
+    // REPRODUCIR IMAGEN
+    // ========================================================
+
+    function playImage() {
+
+        if (!currentImage) {
+
+            alert(
+                "Primero selecciona una imagen."
+            );
+
+            return;
+
+        }
+
+
+        initAudio();
+
+
+        prepareAudioData();
+
+
+        if (audioData.length === 0) {
+            return;
+        }
+
+
+        isPlaying = true;
+
+        isPaused = false;
+
+
+        status.textContent =
+            "Reproduciendo imagen...";
+
+
+        currentIndex = 0;
+
+
+        playNextPixel();
+
+    }
+
+
+    // ========================================================
+    // REPRODUCIR SIGUIENTE PIXEL
+    // ========================================================
+
+    function playNextPixel() {
+
+        if (!isPlaying) {
+            return;
+        }
+
+
+        if (isPaused) {
+            return;
+        }
+
+
+        if (
+            currentIndex >=
+            audioData.length
+        ) {
+
+            isPlaying = false;
+
+            status.textContent =
+                "Reproducción terminada.";
+
+            return;
+
+        }
+
+
+        const pixel =
+            audioData[currentIndex];
+
+
+        // Reproducir sonido
+
+        playPixelSound(
+            pixel,
+            0.13
+        );
+
+
+        // Actualizar progreso
+
+        const percentage =
+            Math.round(
+                (
+                    currentIndex /
+                    audioData.length
+                ) * 100
+            );
+
+
+        status.textContent =
+            `Reproduciendo: ${percentage}% ` +
+            `| Bloque ${currentIndex + 1} ` +
+            `de ${audioData.length}`;
+
+
+        currentIndex++;
+
+
+        // ----------------------------------------------------
+        // VELOCIDAD
+        // ----------------------------------------------------
+
+        const baseTime =
+            130;
+
+
+        const interval =
+            baseTime /
+            Number(speed.value);
+
+
+        timer =
+            setTimeout(
+                playNextPixel,
+                interval
+            );
+
+    }
+
+
+    // ========================================================
+    // BOTÓN REPRODUCIR
+    // ========================================================
+
+    playButton.addEventListener(
+        "click",
+        function() {
+
+            if (isPaused) {
+
+                initAudio();
+
+                isPaused = false;
+
+                isPlaying = true;
+
+                playNextPixel();
+
+                return;
+
+            }
+
+
+            playImage();
+
+        }
+    );
+
+
+    // ========================================================
+    // PAUSAR
+    // ========================================================
+
+    pauseButton.addEventListener(
+        "click",
+        function() {
+
+            if (!isPlaying) {
+                return;
+            }
+
+
+            isPaused = true;
+
+            isPlaying = false;
+
+
+            clearTimeout(timer);
+
+
+            status.textContent =
+                "Reproducción pausada.";
+
+        }
+    );
+
+
+    // ========================================================
+    // DETENER
+    // ========================================================
+
+    stopButton.addEventListener(
+        "click",
+        function() {
+
+            isPlaying = false;
+
+            isPaused = false;
+
+
+            clearTimeout(timer);
+
+
+            currentIndex = 0;
+
+
+            status.textContent =
+                "Reproducción detenida.";
+
+        }
+    );
+
+
+    // ========================================================
+    // SI CAMBIA EL TAMAÑO DE MUESTREO
+    // ========================================================
+
+    sampleSize.addEventListener(
+        "change",
+        function() {
+
+            if (currentImage) {
+
+                prepareAudioData();
+
+                drawPixelMap();
+
+            }
+
+        }
+    );
+
+
+    // ========================================================
+    // CAMBIOS EN LOS PARÁMETROS
+    // ========================================================
+
+    [
+        minFreq,
+        maxFreq,
+        minFilter,
+        maxFilter
+    ].forEach(
+        element => {
+
+            element.addEventListener(
+                "change",
+                function() {
+
+                    if (currentImage) {
+                        prepareAudioData();
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    // ========================================================
+    // INICIO
+    // ========================================================
+
+    status.textContent =
+        "Selecciona una imagen para comenzar.";
+
+</script>
+
+</body>
+</html>
